@@ -156,7 +156,7 @@ func main() {
 	username := os.Getenv("MYSQL_USERNAME")
 	password := os.Getenv("MYSQL_PASSWORD")
 
-	connstring := fmt.Sprintf("%s:%s@%s/%s", username, password, server, dbname)
+	connstring := fmt.Sprintf("%s:%s@%s/%s?parseTime=true", username, password, server, dbname)
 	db, err := sql.Open("mysql", connstring)
 	dbok := true
 
