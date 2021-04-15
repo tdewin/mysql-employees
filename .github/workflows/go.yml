@@ -25,7 +25,7 @@ jobs:
     - name: Install
       run: go install -v github.com/tdewin/mysql-employees
     - name: Show files
-      run: find .
+      run: find / -iname mysql-employees
     - name: Upload the binary
       uses: actions/upload-artifact@v2.2.3
       with:
