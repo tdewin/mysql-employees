@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql-employees
+  labels:
+    app: mysql-employees
+spec:
+  containers:
+    - name: mysql-employees
+      image: tdewin/mysql-employees
+      ports:
+        - name: mysql-employees
+          containerPort: 8080
+          protocol: TCP
+      env:
+        - name: MYSQL_DB
+          value: employees
+        - name: MYSQL_SERVER
+          value: tcp(mysql-demo:3306)
+        - name: MYSQL_USERNAME
+          value: root
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: mysql-root-password
+              name: mysql-demo
+
