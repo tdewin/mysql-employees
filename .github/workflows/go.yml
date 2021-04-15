@@ -19,10 +19,10 @@ jobs:
         go-version: 1.15
         
     - name: Get
-      run: go get -v ./...
+      run: go get -v github.com/tdewin/mysql-employees
       
     - name: Install
-      run: go install -v ./...
+      run: go install -v github.com/tdewin/mysql-employees
 
     - name: Upload the binary
       uses: actions/upload-artifact@v2.2.3
