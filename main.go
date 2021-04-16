@@ -26,6 +26,9 @@ type Employee struct {
 	Gender     string    `json:"gender"`
 	Hire_date  time.Time `json:"hire_date"`
 }
+type DeleteRec struct {
+	DeleteId int `json:"deleteid"`
+}
 
 type APIHandler struct {
 	db   *sql.DB
@@ -77,7 +80,22 @@ func (h *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// do something
 		fmt.Fprint(w, "not implemented")
 	} else if r.Method == "DELETE" {
+		b, err := ioutil.ReadAll(r.Body)
+		if err == nil {
+			r := DeleteRec{}
 
+			err = json.Unmarshal(b, &r)
+			if err == nil {
+				fmt.Println("deleting", r.DeleteId)
+				h.mu.Lock()
+				defer h.mu.Unlock()
+				_, err = h.db.Exec("DELETE FROM employees WHERE emp_no = ?", r.DeleteId)
+			}
+		}
+
+		if err != nil {
+			fmt.Println("Somewhere an error occured", err)
+		}
 	}
 
 }
@@ -110,6 +128,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
                     <div class="col-lg-8">
                       <table class="table">
                         <tr v-for="emp in employees"   >
+						  <td><button class="btn btn-danger rounded-circle" v-bind:id="emp.emp_no" onclick="deleterec(this.id);">X</button></td>
 						  <td>{{emp.emp_no}}</td>
                           <td>{{emp.first_name}}</td>
 						  <td>{{emp.last_name}}</td>
@@ -137,23 +156,47 @@ func handler(w http.ResponseWriter, r *http.Request) {
 					]   
 				}
 			})
-
-			fetch(window.resturl, {
-				method: 'GET', // *GET, POST, PUT, DELETE, etc.
-				mode: 'cors', // no-cors, *cors, same-origin
-				cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-				credentials: 'same-origin', // include, *same-origin, omit
-				redirect: 'follow', // manual, *follow, error
-				referrerPolicy: 'no-referrer' // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-			}).then(response => response.json()).then(data => {
-				data.forEach(emp => {
-					window.employees.employees.push(emp)
+			function deleterec(id) {
+				fetch(window.resturl, {
+					method: 'DELETE', // *GET, POST, PUT, DELETE, etc.
+					mode: 'cors', // no-cors, *cors, same-origin
+					cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+					credentials: 'same-origin', // include, *same-origin, omit
+					redirect: 'follow', // manual, *follow, error
+					referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+					body: JSON.stringify({deleteid:parseInt(id)})
+				}).then(response => response).then(data => {
+					console.log("deleted")
+				}).catch((error) => {
+					console.error('Error:', error);
+				}).finally(()=> {
 				})
-			}).catch((error) => {
-				console.error('Error:', error);
-				alert(error)
-			}).finally(()=> {
-			})
+			}
+
+			function refresh() {
+				console.log("Refreshing")
+				fetch(window.resturl, {
+					method: 'GET', // *GET, POST, PUT, DELETE, etc.
+					mode: 'cors', // no-cors, *cors, same-origin
+					cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+					credentials: 'same-origin', // include, *same-origin, omit
+					redirect: 'follow', // manual, *follow, error
+					referrerPolicy: 'no-referrer' // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+				}).then(response => response.json()).then(data => {
+					window.employees.employees = []
+					data.forEach(emp => {
+						window.employees.employees.push(emp)
+					})
+					console.log("refreshed")
+				}).catch((error) => {
+					console.error('Error:', error);
+				}).finally(()=> {
+					setTimeout(refresh, 3000);
+				})
+			}
+			refresh();
+
+
 		</script>
 	</body>
 </html>

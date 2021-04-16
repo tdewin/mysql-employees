@@ -3,6 +3,7 @@ kind: Job
 metadata:
   name: mysql-employees-init
 spec:
+    ttlSecondsAfterFinished: 300
     template:
       spec:
         containers:
@@ -14,14 +15,14 @@ spec:
               - name: MYSQL_DB
                 value: employees
               - name: MYSQL_SERVER
-                value: tcp(mysql-server:3306)
+                value: tcp(mysql-demo:3306)
               - name: MYSQL_USERNAME
                 value: root
               - name: MYSQL_PASSWORD
                 valueFrom:
                   secretKeyRef:
                     key: mysql-root-password
-                    name: mysql-server
+                    name: mysql-demo
             volumeMounts:
               - name: mysql-init
                 mountPath: /usr/share/mysql-employees
