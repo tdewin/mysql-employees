@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -36,40 +37,47 @@ func (h *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("content-type", "application/json")
 
-	employees := []Employee{
-		{1, time.Now(), "Could not", "Connect", "M", time.Now()},
-		{2, time.Now(), "Fake Data", "For Testing", "M", time.Now()},
-	}
+	if r.Method == "GET" {
+		employees := []Employee{
+			{1, time.Now(), "Could not", "Connect", "M", time.Now()},
+			{2, time.Now(), "Fake Data", "For Testing", "M", time.Now()},
+		}
 
-	if h.dbok {
-		h.mu.Lock()
-		defer h.mu.Unlock()
+		if h.dbok {
+			h.mu.Lock()
+			defer h.mu.Unlock()
 
-		// Execute the query
-		results, err := h.db.Query("SELECT emp_no, birth_date, first_name, last_name, gender, hire_date FROM employees")
-		if err != nil {
-			log.Println("Whoops, probaly was not able to connect")
-			log.Println(err.Error()) // proper error handling instead of panic in your app
-		} else {
-			employees = []Employee{}
-			for results.Next() {
-				var employee Employee
-				// for each row, scan the result into our tag composite object
-				err = results.Scan(&employee.Emp_no, &employee.Birth_date, &employee.First_name, &employee.Last_name, &employee.Gender, &employee.Hire_date)
-				if err != nil {
-					log.Println(err.Error()) // proper error handling instead of panic in your app
-				} else {
-					employees = append(employees, employee)
+			// Execute the query
+			results, err := h.db.Query("SELECT emp_no, birth_date, first_name, last_name, gender, hire_date FROM employees")
+			if err != nil {
+				log.Println("Whoops, probaly was not able to connect")
+				log.Println(err.Error()) // proper error handling instead of panic in your app
+			} else {
+				employees = []Employee{}
+				for results.Next() {
+					var employee Employee
+					// for each row, scan the result into our tag composite object
+					err = results.Scan(&employee.Emp_no, &employee.Birth_date, &employee.First_name, &employee.Last_name, &employee.Gender, &employee.Hire_date)
+					if err != nil {
+						log.Println(err.Error()) // proper error handling instead of panic in your app
+					} else {
+						employees = append(employees, employee)
+					}
 				}
 			}
 		}
-	}
 
-	b, err := json.Marshal(employees)
-	if err != nil {
-		fmt.Fprintf(w, "[]")
-	} else {
-		w.Write(b)
+		b, err := json.Marshal(employees)
+		if err != nil {
+			fmt.Fprintf(w, "[]")
+		} else {
+			w.Write(b)
+		}
+	} else if r.Method == "POST" {
+		// do something
+		fmt.Fprint(w, "not implemented")
+	} else if r.Method == "DELETE" {
+
 	}
 
 }
@@ -151,24 +159,32 @@ func handler(w http.ResponseWriter, r *http.Request) {
 </html>
 	`)
 }
-func initdb(db *sql.DB) {
-	content, err := ioutil.ReadFile("/usr/share/mysql-employees/initmysql.sql")
+func initdb(db *sql.DB, filen *string) {
+	fmt.Println("Reading ", *filen)
+	content, err := ioutil.ReadFile(*filen)
 	if err != nil {
 		fmt.Println("Couldnt read file, doing nothing")
 		fmt.Println(err)
 	} else {
-		_, err = db.Query(string(content))
-		if err != nil {
-			log.Println("Probaly was not able to connect")
-			log.Println(err.Error())
-		} else {
-			log.Println("Should be created")
+		statements := strings.Split(string(content), ";")
+		for _, statement := range statements {
+			stssep := fmt.Sprintf("%s;", statement)
+			_, err = db.Exec(stssep)
+			if err != nil {
+				log.Println("Error on ", stssep)
+				log.Println(err.Error())
+				break
+			} else {
+				log.Println("Executed ", stssep)
+			}
 		}
+
 	}
 }
 
 func main() {
 	initPtr := flag.Bool("init", false, "is this the one time init")
+	initfilePtr := flag.String("initfile", "/usr/share/mysql-employees/initmysql.sql", "the file to init from")
 	flag.Parse()
 
 	server := os.Getenv("MYSQL_SERVER")
@@ -184,8 +200,6 @@ func main() {
 	db, err := sql.Open("mysql", connstring)
 	dbok := true
 
-	fmt.Println(connstring)
-
 	if err != nil {
 		log.Println(err)
 		dbok = false
@@ -198,7 +212,12 @@ func main() {
 	defer db.Close()
 
 	if *initPtr {
-		initdb(db)
+		if dbok {
+			fmt.Println("Init mode")
+			initdb(db, initfilePtr)
+		} else {
+			panic("Was not able to connect, not going to continue")
+		}
 	} else {
 		mux := http.NewServeMux()
 
