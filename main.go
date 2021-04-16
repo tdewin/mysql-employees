@@ -77,8 +77,23 @@ func (h *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Write(b)
 		}
 	} else if r.Method == "POST" {
-		// do something
-		fmt.Fprint(w, "not implemented")
+		b, err := ioutil.ReadAll(r.Body)
+		if err == nil {
+			emp := Employee{}
+			fmt.Println(string(b))
+			err = json.Unmarshal(b, &emp)
+			if err == nil {
+				fmt.Println("Adding ", emp)
+				h.mu.Lock()
+				defer h.mu.Unlock()
+				//INSERT INTO `employees` VALUES (10001,'1953-09-02','Georgi','Facello','M','1986-06-26')
+				_, err = h.db.Exec("INSERT INTO `employees` VALUES (?,?,?,?,?,?)", emp.Emp_no, emp.Birth_date, emp.First_name, emp.Last_name, emp.Gender, emp.Hire_date)
+			}
+		}
+
+		if err != nil {
+			fmt.Println("Somewhere an error occured", err)
+		}
 	} else if r.Method == "DELETE" {
 		b, err := ioutil.ReadAll(r.Body)
 		if err == nil {
@@ -127,12 +142,31 @@ func handler(w http.ResponseWriter, r *http.Request) {
 					<div class="col-lg-1"></div>
                     <div class="col-lg-8">
                       <table class="table">
+					    <tr>
+							<th></th>
+							<th>No</th>
+							<th>Hire Date</th>
+							<th>First Name</th>
+							<th>Last Name</th>
+							<th>Birth Date</th>
+							<th>Gender</th>
+						</tr>
+						<tr>
+							<td><button class="btn btn-success"  onclick="add();">Add</button></td>
+							<td><input type="number" value=1 id="iemp_no"></input></td>
+							<td><input type="text" id="ihire_date" value="2000-04-16"></input></td>
+							<td><input type="text" id="ifirst_name"></input></td>
+							<td><input type="text" id="ilast_name"></input></td>
+							<td><input type="text" id="ibirth_date" value="2020-04-16"></input></td>
+							<td><input type="text" id="igender" value="X"></input></td>
+						</tr>
                         <tr v-for="emp in employees"   >
 						  <td><button class="btn btn-danger rounded-circle" v-bind:id="emp.emp_no" onclick="deleterec(this.id);">X</button></td>
 						  <td>{{emp.emp_no}}</td>
+						  <td>{{emp.hire_date | formatGoDate}}</td>
                           <td>{{emp.first_name}}</td>
 						  <td>{{emp.last_name}}</td>
-						  <td>{{emp.birth_date}}</td>
+						  <td>{{emp.birth_date | formatGoDate}}</td>
 						  <td>{{emp.gender}}</td>
                         </tr>
                       </table>
@@ -149,6 +183,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		<script>
 			window.resturl = "/api"
 
+			Vue.filter('formatGoDate', function(value) {
+				if (value) {
+					return (new Date(Date.parse(value))).toDateString();
+				} else {
+					return ""
+				}
+			})
+
 			window.employees = new Vue({
 				el: "#employees",
 				data: {
@@ -156,6 +198,47 @@ func handler(w http.ResponseWriter, r *http.Request) {
 					]   
 				}
 			})
+
+			//god i hate golang crappy time convers while demarshalling
+			var offset = (new Date()).getTimezoneOffset()
+			var offseth = parseInt(offset/60)
+			var offsetabs = Math.abs(offseth)
+			offsetabs = (offsetabs<10)?"0"+offsetabs:""+offsetabs
+			var offsetm = Math.abs(offset%%60)
+			offsetm = (offsetm<10)?"0"+offsetm:""+offsetm
+			window.tz = (((offset/60)<0)?"-":"+")+offsetabs+":"+offsetm
+			window.dateappend = "T00:00:00"+window.tz
+
+			function add() {
+				var empnow = parseInt($("#iemp_no").val())
+				$("#iemp_no").val(empnow+1)
+
+				
+
+
+
+				
+
+				fetch(window.resturl, {
+					method: 'POST', // *GET, POST, PUT, DELETE, etc.
+					mode: 'cors', // no-cors, *cors, same-origin
+					cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+					credentials: 'same-origin', // include, *same-origin, omit
+					redirect: 'follow', // manual, *follow, error
+					referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+					body: JSON.stringify({emp_no:empnow,
+						hire_date:$("#ihire_date").val()+window.dateappend,
+						birth_date:$("#ibirth_date").val()+window.dateappend,
+						first_name:$("#ifirst_name").val(),
+						last_name:$("#ilast_name").val(),
+						gender:$("#igender").val()})
+				}).then(response => response).then(data => {
+					console.log("added")
+				}).catch((error) => {
+					console.error('Error:', error);
+				}).finally(()=> {
+				})
+			}
 			function deleterec(id) {
 				fetch(window.resturl, {
 					method: 'DELETE', // *GET, POST, PUT, DELETE, etc.
@@ -211,14 +294,17 @@ func initdb(db *sql.DB, filen *string) {
 	} else {
 		statements := strings.Split(string(content), ";")
 		for _, statement := range statements {
-			stssep := fmt.Sprintf("%s;", statement)
-			_, err = db.Exec(stssep)
-			if err != nil {
-				log.Println("Error on ", stssep)
-				log.Println(err.Error())
-				break
-			} else {
-				log.Println("Executed ", stssep)
+			ststep := strings.TrimSpace(statement)
+			if ststep != "" {
+				stssep := fmt.Sprintf("%s;", ststep)
+				_, err = db.Exec(stssep)
+				if err != nil {
+					log.Println("Error on ", stssep)
+					log.Println(err.Error())
+					break
+				} else {
+					log.Println("Executed ", stssep)
+				}
 			}
 		}
 
