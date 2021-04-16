@@ -5,7 +5,9 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -149,14 +151,36 @@ func handler(w http.ResponseWriter, r *http.Request) {
 </html>
 	`)
 }
+func initdb(db *sql.DB) {
+	content, err := ioutil.ReadFile("/usr/share/mysql-employees/initmysql.sql")
+	if err != nil {
+		fmt.Println("Couldnt read file, doing nothing")
+		fmt.Println(err)
+	} else {
+		_, err = db.Query(string(content))
+		if err != nil {
+			log.Println("Probaly was not able to connect")
+			log.Println(err.Error())
+		} else {
+			log.Println("Should be created")
+		}
+	}
+}
 
 func main() {
+	initPtr := flag.Bool("init", false, "is this the one time init")
+	flag.Parse()
+
 	server := os.Getenv("MYSQL_SERVER")
-	dbname := os.Getenv("MYSQL_DB")
 	username := os.Getenv("MYSQL_USERNAME")
 	password := os.Getenv("MYSQL_PASSWORD")
+	dbname := os.Getenv("MYSQL_DB")
+	connstring := fmt.Sprintf("%s:%s@%s/?parseTime=true", username, password, server)
 
-	connstring := fmt.Sprintf("%s:%s@%s/%s?parseTime=true", username, password, server, dbname)
+	if !*initPtr {
+		connstring = fmt.Sprintf("%s:%s@%s/%s?parseTime=true", username, password, server, dbname)
+	}
+
 	db, err := sql.Open("mysql", connstring)
 	dbok := true
 
@@ -173,10 +197,15 @@ func main() {
 
 	defer db.Close()
 
-	mux := http.NewServeMux()
+	if *initPtr {
+		initdb(db)
+	} else {
+		mux := http.NewServeMux()
 
-	apihandler := &APIHandler{db, sync.Mutex{}, dbok}
-	mux.Handle("/api", apihandler)
-	mux.HandleFunc("/", handler)
-	log.Fatal(http.ListenAndServe(":8080", mux))
+		apihandler := &APIHandler{db, sync.Mutex{}, dbok}
+		mux.Handle("/api", apihandler)
+		mux.HandleFunc("/", handler)
+		log.Fatal(http.ListenAndServe(":8080", mux))
+	}
+
 }
