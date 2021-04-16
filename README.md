@@ -21,7 +21,7 @@ kubectl -n mysql-demo get pod
 
 now start the db create job
 ```
-kubectl -n mysql-demo create configmap mysql-init --from-file https://raw.githubusercontent.com/tdewin/mysql-employees/main/initconfigmap.yaml
+kubectl -n mysql-demo apply -f https://raw.githubusercontent.com/tdewin/mysql-employees/main/initconfigmap.yaml
 kubectl -n mysql-demo apply -f https://raw.githubusercontent.com/tdewin/mysql-employees/main/initjob.yaml
 ```
 
