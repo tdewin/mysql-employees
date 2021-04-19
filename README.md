@@ -10,6 +10,7 @@ helm install mysql-demo bitnami/mysql --namespace=mysql-demo
 
 create the frontend
 ```
+kubectl -n mysql-demo apply -f https://raw.githubusercontent.com/tdewin/mysql-employees/main/configmap.yaml
 kubectl -n mysql-demo apply -f https://raw.githubusercontent.com/tdewin/mysql-employees/main/deployment.yaml
 kubectl -n mysql-demo apply -f https://raw.githubusercontent.com/tdewin/mysql-employees/main/svc.yaml
 ```
@@ -21,7 +22,6 @@ kubectl -n mysql-demo get pod
 
 now start the db create job
 ```
-kubectl -n mysql-demo apply -f https://raw.githubusercontent.com/tdewin/mysql-employees/main/initconfigmap.yaml
 kubectl -n mysql-demo apply -f https://raw.githubusercontent.com/tdewin/mysql-employees/main/initjob.yaml
 ```
 
