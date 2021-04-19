@@ -33,4 +33,11 @@ spec:
                 secretKeyRef:
                   key: mysql-root-password
                   name: mysql-demo
+          volumeMounts:
+            - name: mysql-configmap
+              mountPath: /usr/share/mysql-employees
+      volumes:
+        - name: mysql-configmap
+          configMap:
+            name: mysql-configmap
 

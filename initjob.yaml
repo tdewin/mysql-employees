@@ -24,12 +24,12 @@ spec:
                     key: mysql-root-password
                     name: mysql-demo
             volumeMounts:
-              - name: mysql-init
+              - name: mysql-configmap
                 mountPath: /usr/share/mysql-employees
         volumes:
-          - name: mysql-init
+          - name: mysql-configmap
             configMap:
-              name: mysql-init
+              name: mysql-configmap
         restartPolicy: Never
     backoffLimit: 1
 

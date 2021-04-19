@@ -196,5 +196,5 @@ data:
     </html>  
 kind: ConfigMap
 metadata:
-  name: mysql-init
+  name: mysql-configmap
 
