@@ -120,7 +120,7 @@ type HTTPHandler struct {
 }
 
 func (h *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, h.staticcontent)
+	fmt.Fprint(w, h.staticcontent)
 }
 
 func initdb(db *sql.DB, filen *string) {
