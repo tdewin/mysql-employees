@@ -1,4 +1,4 @@
-cd $env:GOPATH\src\github.com\tdewin\mysql-employees
+Set-Location $env:GOPATH\src\github.com\tdewin\mysql-employees
 $env:GOOS="linux"
 $env:GOARCH="amd64"
 go build github.com/tdewin/mysql-employees
