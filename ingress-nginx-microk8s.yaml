@@ -3,7 +3,7 @@ data:
   auth: YWRtaW46JGFwcjEkdXNPbWV3MlIkUTZsNklnMUVVZml1a3diVHYuTGJ1Lgo=
 kind: Secret
 metadata:
-  name: basic-auth1
+  name: basic-auth
 type: Opaque
 ---
 apiVersion: networking.k8s.io/v1beta1
