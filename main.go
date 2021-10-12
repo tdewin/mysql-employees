@@ -156,6 +156,7 @@ func main() {
 
 	flag.Parse()
 
+	prefix := os.Getenv("ROUTING_PREFIX")
 	server := os.Getenv("MYSQL_SERVER")
 	username := os.Getenv("MYSQL_USERNAME")
 	password := os.Getenv("MYSQL_PASSWORD")
@@ -191,7 +192,7 @@ func main() {
 		mux := http.NewServeMux()
 
 		apihandler := &APIHandler{db, sync.Mutex{}, dbok}
-		mux.Handle("/api", apihandler)
+		mux.Handle(fmt.Sprintf("%s/api", prefix), apihandler)
 
 		staticcontent := html
 		content, err := ioutil.ReadFile(*htmlPtr)
@@ -202,7 +203,7 @@ func main() {
 		}
 
 		htmlhandler := &HTTPHandler{staticcontent}
-		mux.Handle("/", htmlhandler)
+		mux.Handle(fmt.Sprintf("%s/", prefix), htmlhandler)
 		log.Fatal(http.ListenAndServe(":8080", mux))
 	}
 
