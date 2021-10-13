@@ -199,6 +199,8 @@ func initdb(db *sql.DB, filen *string) {
 }
 
 func main() {
+	fmt.Println("v 1.1.14.33")
+
 	initPtr := flag.Bool("init", false, "is this the one time init")
 	initfilePtr := flag.String("initfile", "/usr/share/mysql-employees/initmysql.sql", "the file to init from")
 	htmlPtr := flag.String("htmlfile", "/usr/share/mysql-employees/index.html", "the file to serve as main point")
