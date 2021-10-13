@@ -133,12 +133,12 @@ func (h *TokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			expiration := time.Now().Add(365 * 24 * time.Hour)
 			cookie := http.Cookie{Name: "weaktoken", Value: h.token, Expires: expiration}
 			http.SetCookie(w, &cookie)
-			fmt.Fprint(w, "OK")
+			fmt.Fprint(w, "OK set")
 		} else {
-			fmt.Fprint(w, "NOK")
+			fmt.Fprint(w, "NOK no match")
 		}
 	} else {
-		fmt.Fprint(w, "NOK")
+		fmt.Fprint(w, "NOK not found")
 	}
 }
 
@@ -155,9 +155,9 @@ func (h *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 <html>
 <body>
 
-<h1>weak_token_set</h1>
+<h1>set a token</h1>
 
-<form action="/token">
+<form action="/token" method="post">
 	<input type="text" id="token" name="token"><br><br>
 	<input type="submit" value="Submit">
 </form>
