@@ -31,19 +31,26 @@ type DeleteRec struct {
 }
 
 type APIHandler struct {
-	db   *sql.DB
-	mu   sync.Mutex
-	dbok bool
+	db    *sql.DB
+	mu    sync.Mutex
+	dbok  bool
+	host  string
+	token string
 }
 
 func (h *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
 	w.Header().Add("content-type", "application/json")
+	if h.token != "" {
+		cookie, err := r.Cookie("weaktoken")
+		if err != nil || cookie.Value != h.token {
+			fmt.Fprint(w, "{}")
+			return
+		}
+	}
 
 	if r.Method == "GET" {
 		employees := []Employee{
-			{1, time.Now(), "Could not", "Connect", "M", time.Now()},
-			{2, time.Now(), "Fake Data", "For Testing", "M", time.Now()},
+			{1, time.Now(), "Internal Error", "", "", time.Now()},
 		}
 
 		if h.dbok {
@@ -115,11 +122,53 @@ func (h *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
+type TokenHandler struct {
+	token string
+}
+
+func (h *TokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if h.token != "" {
+		tokenin := r.PostFormValue("token")
+		if tokenin == h.token {
+			expiration := time.Now().Add(365 * 24 * time.Hour)
+			cookie := http.Cookie{Name: "weaktoken", Value: h.token, Expires: expiration}
+			http.SetCookie(w, &cookie)
+			fmt.Fprint(w, "OK")
+		} else {
+			fmt.Fprint(w, "NOK")
+		}
+	} else {
+		fmt.Fprint(w, "NOK")
+	}
+}
+
 type HTTPHandler struct {
 	staticcontent string
+	token         string
 }
 
 func (h *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if h.token != "" {
+		cookie, err := r.Cookie("weaktoken")
+		if err != nil || cookie.Value != h.token {
+			fmt.Fprint(w, `<!DOCTYPE html>
+<html>
+<body>
+
+<h1>weak_token_set</h1>
+
+<form action="/token">
+	<input type="text" id="token" name="token"><br><br>
+	<input type="submit" value="Submit">
+</form>
+
+</body>
+</html>
+			`)
+			return
+		}
+	}
+
 	fmt.Fprint(w, h.staticcontent)
 }
 
@@ -156,6 +205,8 @@ func main() {
 
 	flag.Parse()
 
+	weakprotection := os.Getenv("WEAK_TOKEN")
+	reqhost := os.Getenv("REQ_HOST")
 	prefix := os.Getenv("ROUTING_PREFIX")
 	server := os.Getenv("MYSQL_SERVER")
 	username := os.Getenv("MYSQL_USERNAME")
@@ -189,9 +240,14 @@ func main() {
 			panic("Was not able to connect, not going to continue")
 		}
 	} else {
+
+		if weakprotection != "" {
+			fmt.Println("Weak token protection detected")
+		}
+
 		mux := http.NewServeMux()
 
-		apihandler := &APIHandler{db, sync.Mutex{}, dbok}
+		apihandler := &APIHandler{db, sync.Mutex{}, dbok, reqhost, weakprotection}
 		mux.Handle(fmt.Sprintf("%s/api", prefix), apihandler)
 
 		staticcontent := html
@@ -202,7 +258,9 @@ func main() {
 			fmt.Println("Defaulting to built-in html file, error reading html file ", *htmlPtr)
 		}
 
-		htmlhandler := &HTTPHandler{staticcontent}
+		tokenhandler := &TokenHandler{weakprotection}
+		mux.Handle(fmt.Sprintf("%s/token", prefix), tokenhandler)
+		htmlhandler := &HTTPHandler{staticcontent, weakprotection}
 		mux.Handle(fmt.Sprintf("%s/", prefix), htmlhandler)
 		log.Fatal(http.ListenAndServe(":8080", mux))
 	}
