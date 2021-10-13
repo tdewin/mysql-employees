@@ -212,6 +212,7 @@ func main() {
 	username := os.Getenv("MYSQL_USERNAME")
 	password := os.Getenv("MYSQL_PASSWORD")
 	dbname := os.Getenv("MYSQL_DB")
+
 	connstring := fmt.Sprintf("%s:%s@%s/?parseTime=true", username, password, server)
 
 	if !*initPtr {
@@ -243,6 +244,8 @@ func main() {
 
 		if weakprotection != "" {
 			fmt.Println("Weak token protection detected")
+		} else {
+			fmt.Println("No protection, consider some form of protection like basic auth")
 		}
 
 		mux := http.NewServeMux()
